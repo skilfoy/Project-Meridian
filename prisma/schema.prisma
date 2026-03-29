@@ -1,0 +1,156 @@
+generator client {
+  provider        = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Organization {
+  id               String       @id @default(cuid())
+  name             String
+  slug             String       @unique
+  plan             Plan         @default(FREE)
+  stripeCustomerId String?
+  stripeSubId      String?
+  tlpDefault       TLP          @default(AMBER)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  users            User[]
+  apiKeys          ApiKey[]
+  dashboards       Dashboard[]
+  watchlists       Watchlist[]
+  feedConfigs      FeedConfig[]
+  auditLogs        AuditLog[]
+  incidents        Incident[]
+}
+
+model User {
+  id          String       @id @default(cuid())
+  orgId       String
+  clerkUserId String       @unique
+  email       String
+  role        Role         @default(ANALYST)
+  createdAt   DateTime     @default(now())
+  org         Organization @relation(fields: [orgId], references: [id])
+  dashboards  Dashboard[]
+}
+
+model ApiKey {
+  id           String       @id @default(cuid())
+  orgId        String
+  provider     String
+  label        String
+  encryptedKey String
+  enabled      Boolean      @default(true)
+  lastTestedAt DateTime?
+  lastStatus   String?
+  createdAt    DateTime     @default(now())
+  org          Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, provider])
+}
+
+model Dashboard {
+  id        String       @id @default(cuid())
+  orgId     String
+  userId    String
+  theaterId String
+  name      String
+  config    Json
+  aiData    Json?
+  pinned    Boolean      @default(false)
+  tlp       TLP          @default(AMBER)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  org       Organization @relation(fields: [orgId], references: [id])
+  user      User         @relation(fields: [userId], references: [id])
+}
+
+model Incident {
+  id         String       @id @default(cuid())
+  orgId      String
+  theaterId  String
+  source     String
+  sourceId   String?
+  domain     String
+  severity   Severity
+  title      String
+  summary    String?
+  rawData    Json
+  lat        Float?
+  lng        Float?
+  occurredAt DateTime
+  createdAt  DateTime     @default(now())
+  org        Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId, theaterId])
+  @@index([orgId, createdAt])
+}
+
+model FeedConfig {
+  id              String       @id @default(cuid())
+  orgId           String
+  feedId          String
+  enabled         Boolean      @default(true)
+  refreshInterval Int          @default(900)
+  filters         Json?
+  lastFetchedAt   DateTime?
+  lastError       String?
+  org             Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, feedId])
+}
+
+model Watchlist {
+  id         String       @id @default(cuid())
+  orgId      String
+  userId     String
+  theaterIds String[]
+  org        Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, userId])
+}
+
+model AuditLog {
+  id        String       @id @default(cuid())
+  orgId     String
+  userId    String?
+  action    String
+  resource  String?
+  metadata  Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime     @default(now())
+  org       Organization @relation(fields: [orgId], references: [id])
+}
+
+enum Plan {
+  FREE
+  ANALYST
+  TEAM
+  ENTERPRISE
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  ANALYST
+  VIEWER
+  EMBED
+}
+
+enum TLP {
+  WHITE
+  GREEN
+  AMBER
+  RED
+}
+
+enum Severity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  INFO
+}
