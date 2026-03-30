@@ -14,10 +14,8 @@ function makeStub(source: string) {
 }
 
 export const fetchAcled        = makeStub('acled');
-export const fetchOtx          = makeStub('otx');
 export const fetchShodan       = makeStub('shodan');
 export const fetchVirusTotal   = makeStub('virustotal');
-export const fetchAbuseIpdb    = makeStub('abuseipdb');
 export const fetchGreyNoise    = makeStub('greynoise');
 export const fetchCensys       = makeStub('censys');
 export const fetchOpenSky      = makeStub('opensky');

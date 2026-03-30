@@ -1,9 +1,11 @@
 'use client';
 import 'leaflet/dist/leaflet.css';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
 import { THEATERS } from '@/lib/theaters';
+import { formatDistanceToNow } from 'date-fns';
 import type { Theater } from '@/types';
+import type { IncidentPin } from './Globe';
 
 function FlyToActive({ theaterId }: { theaterId: string }) {
   const map = useMap();
@@ -19,11 +21,10 @@ function FlyToActive({ theaterId }: { theaterId: string }) {
 interface Props {
   onSelectTheater: (t: Theater) => void;
   activeTheaterId: string;
+  incidentPins?:   IncidentPin[];
 }
 
-export default function GlobeInner({ onSelectTheater, activeTheaterId }: Props) {
-  const activeTheater = THEATERS.find((t) => t.id === activeTheaterId);
-
+export default function GlobeInner({ onSelectTheater, activeTheaterId, incidentPins = [] }: Props) {
   return (
     <MapContainer
       center={[20, 10]}
@@ -44,6 +45,7 @@ export default function GlobeInner({ onSelectTheater, activeTheaterId }: Props) 
 
       <FlyToActive theaterId={activeTheaterId} />
 
+      {/* Theater markers */}
       {THEATERS.map((theater) => {
         const isActive = theater.id === activeTheaterId;
         return (
@@ -52,14 +54,12 @@ export default function GlobeInner({ onSelectTheater, activeTheaterId }: Props) 
             center={[theater.lat, theater.lng]}
             radius={isActive ? 14 : 8}
             pathOptions={{
-              color: isActive ? '#ffffff' : theater.color,
-              fillColor: theater.color,
+              color:       isActive ? '#ffffff' : theater.color,
+              fillColor:   theater.color,
               fillOpacity: isActive ? 0.9 : 0.7,
-              weight: isActive ? 2.5 : 1.5,
+              weight:      isActive ? 2.5 : 1.5,
             }}
-            eventHandlers={{
-              click: () => onSelectTheater(theater),
-            }}
+            eventHandlers={{ click: () => onSelectTheater(theater) }}
           >
             <Popup>
               <div className="p-1">
@@ -77,6 +77,28 @@ export default function GlobeInner({ onSelectTheater, activeTheaterId }: Props) 
           </CircleMarker>
         );
       })}
+
+      {/* Incident pins */}
+      {incidentPins.map((pin) => (
+        <CircleMarker
+          key={pin.id}
+          center={[pin.lat, pin.lng]}
+          radius={5}
+          pathOptions={{
+            color:       pin.type === 'earthquake' ? '#f59e0b' : '#f97316',
+            fillColor:   pin.type === 'earthquake' ? '#fbbf24' : '#fb923c',
+            fillOpacity: 0.65,
+            weight:      1,
+          }}
+        >
+          <Popup>
+            <div className="p-1 max-w-[200px]">
+              <div className="text-[11px] font-semibold mb-1 leading-tight">{pin.title}</div>
+              <div className="text-[10px] text-gray-500 capitalize">{pin.type} · {formatDistanceToNow(new Date(pin.occurredAt), { addSuffix: true })}</div>
+            </div>
+          </Popup>
+        </CircleMarker>
+      ))}
     </MapContainer>
   );
 }

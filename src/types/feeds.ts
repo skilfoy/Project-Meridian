@@ -1,7 +1,7 @@
 import type { Severity } from './index';
 
 export type FeedTier = 'FREE' | 'KEY_REQUIRED' | 'PAID';
-export type FeedCategory = 'conflict' | 'government' | 'commercial' | 'news' | 'maritime' | 'cyber' | 'environmental' | 'aviation' | 'sanctions';
+export type FeedCategory = 'conflict' | 'government' | 'commercial' | 'news' | 'maritime' | 'cyber' | 'environmental' | 'aviation' | 'sanctions' | 'financial';
 export type FeedStatus = 'live' | 'error' | 'no-key' | 'disabled' | 'unknown';
 
 export interface FeedDefinition {

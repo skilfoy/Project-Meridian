@@ -18,11 +18,14 @@ export async function fetchUsgsEarthquake(params: FeedParams): Promise<RawFeedRe
   };
 
   const items = (data.features ?? []).slice(0, limit).map((f) => {
-    const p = f.properties ?? {};
+    const p    = f.properties ?? {};
+    const coords = f.geometry?.coordinates; // GeoJSON: [lng, lat, depth]
     return {
       title:       p.title ?? 'Earthquake',
       url:         p.url,
       publishedAt: p.time ? new Date(p.time).toISOString() : undefined,
+      lat:         coords ? coords[1] : undefined,
+      lng:         coords ? coords[0] : undefined,
       tags:        ['usgs', 'earthquake', 'seismic', p.place ?? ''].filter(Boolean),
     };
   });

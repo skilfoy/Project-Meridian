@@ -7,23 +7,46 @@ import { TrendChart }     from './widgets/TrendChart';
 import { ThreatMatrix }   from './widgets/ThreatMatrix';
 import { ExecSummary }    from './widgets/ExecSummary';
 import type { Theater } from '@/types';
+import type { NormalizedIncident } from '@/types/feeds';
 
 interface DashboardProps {
   theater: Theater;
 }
 
+function buildTrend(incidents: NormalizedIncident[]) {
+  const now = Date.now();
+  return Array.from({ length: 14 }, (_, i) => {
+    const dayStart = now - (13 - i) * 86400000;
+    const dayEnd   = dayStart + 86400000;
+    return {
+      date:      new Date(dayStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      incidents: incidents.filter((inc) => {
+        const t = new Date(inc.occurredAt).getTime();
+        return t >= dayStart && t < dayEnd;
+      }).length,
+    };
+  });
+}
+
 export function Dashboard({ theater }: DashboardProps) {
-  const { data: gdeltData, isLoading: gdeltLoading } = useFeed('gdelt', theater.id);
-  const { data: cisaData }  = useFeed('cisa-kev');
+  const { data: gdeltData,    isLoading: gdeltLoading }    = useFeed('gdelt', theater.id);
+  const { data: cisaData }                                  = useFeed('cisa-kev');
+  const { data: reliefData }                                = useFeed('reliefweb', theater.id);
+  const { data: interpolData }                              = useFeed('interpol-notices');
+  const { data: usgsData }                                  = useFeed('usgs-earthquake');
   const { intel, loading: aiLoading, error: aiError, generateIntel } = useDashboard(theater.id);
 
   const allIncidents = [
-    ...(gdeltData?.incidents ?? []),
-    ...(cisaData?.incidents  ?? []),
+    ...(gdeltData?.incidents    ?? []),
+    ...(cisaData?.incidents     ?? []),
+    ...(reliefData?.incidents   ?? []),
+    ...(interpolData?.incidents ?? []),
+    ...(usgsData?.incidents     ?? []),
   ].sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
 
   const criticalCount = allIncidents.filter((i) => i.severity === 'CRITICAL' || i.severity === 'HIGH').length;
-  const feedsOnline   = [gdeltData, cisaData].filter(Boolean).length;
+  const feedsOnline   = [gdeltData, cisaData, reliefData, interpolData, usgsData].filter(Boolean).length;
+  const trendData     = buildTrend(allIncidents);
 
   return (
     <div className="flex flex-col h-full overflow-auto p-4 gap-4">
@@ -59,7 +82,7 @@ export function Dashboard({ theater }: DashboardProps) {
             <span>Live Incident Feed</span>
             <span className="text-slate-600">{allIncidents.length} events</span>
           </div>
-          <IncidentFeed incidents={allIncidents.slice(0, 30)} loading={gdeltLoading} />
+          <IncidentFeed incidents={allIncidents.slice(0, 30)} loading={gdeltLoading} theaterId={theater.id} />
         </div>
 
         {/* Right column */}
@@ -69,13 +92,13 @@ export function Dashboard({ theater }: DashboardProps) {
             <div className="text-[11px] text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
               <span className="text-cyan-500">✦</span> AI Executive Summary
             </div>
-            <ExecSummary intel={intel} loading={aiLoading} error={aiError} onGenerate={generateIntel} />
+            <ExecSummary intel={intel} loading={aiLoading} error={aiError} onGenerate={() => generateIntel(allIncidents)} />
           </div>
 
           {/* Threat Matrix */}
           <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-4">
             <div className="text-[11px] text-slate-500 uppercase tracking-wider mb-3">Threat Matrix</div>
-            <ThreatMatrix theaterId={theater.id} />
+            <ThreatMatrix incidents={allIncidents} />
           </div>
         </div>
       </div>
@@ -83,7 +106,7 @@ export function Dashboard({ theater }: DashboardProps) {
       {/* Trend Chart */}
       <div className="bg-[#111827] border border-white/[0.06] rounded-xl p-4">
         <div className="text-[11px] text-slate-500 uppercase tracking-wider mb-3">14-Day Incident Trend</div>
-        <TrendChart />
+        <TrendChart data={trendData} />
       </div>
     </div>
   );

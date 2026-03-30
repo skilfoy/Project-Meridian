@@ -5,15 +5,15 @@ interface TrendChartProps {
   data?: Array<{ date: string; incidents: number }>;
 }
 
-function generateMockTrend() {
-  return Array.from({ length: 14 }, (_, i) => ({
-    date: new Date(Date.now() - (13 - i) * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    incidents: Math.floor(Math.random() * 40) + 10,
-  }));
-}
-
 export function TrendChart({ data }: TrendChartProps) {
-  const chartData = data ?? generateMockTrend();
+  if (!data || data.length === 0) {
+    return (
+      <div className="h-[140px] flex items-center justify-center text-[12px] text-slate-600">
+        No trend data yet
+      </div>
+    );
+  }
+  const chartData = data;
 
   return (
     <ResponsiveContainer width="100%" height={140}>

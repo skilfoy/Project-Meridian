@@ -9,7 +9,7 @@ export async function fetchGdacs(params: FeedParams): Promise<RawFeedResult> {
   const limit = params.limit ?? 20;
 
   // Simple regex-based RSS parse — avoids xml2js in edge runtime
-  const items: Array<{ title: string; url?: string; publishedAt?: string; summary?: string; tags: string[] }> = [];
+  const items: Array<{ title: string; url?: string; publishedAt?: string; summary?: string; lat?: number; lng?: number; tags: string[] }> = [];
   const itemRe = /<item>([\s\S]*?)<\/item>/g;
   let match: RegExpExecArray | null;
 
@@ -19,8 +19,12 @@ export async function fetchGdacs(params: FeedParams): Promise<RawFeedResult> {
     const link   = block.match(/<link>(.*?)<\/link>/)?.[1];
     const pubDate = block.match(/<pubDate>(.*?)<\/pubDate>/)?.[1];
     const desc   = block.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/)?.[1]?.slice(0, 200);
+    const latStr = block.match(/<geo:lat>(.*?)<\/geo:lat>/)?.[1] ?? block.match(/<georss:point>([\d.-]+)\s/)?.[1];
+    const lngStr = block.match(/<geo:long>(.*?)<\/geo:long>/)?.[1] ?? block.match(/<georss:point>[\d.-]+\s([\d.-]+)/)?.[1];
+    const lat    = latStr ? parseFloat(latStr) : undefined;
+    const lng    = lngStr ? parseFloat(lngStr) : undefined;
 
-    items.push({ title, url: link, publishedAt: pubDate, summary: desc, tags: ['gdacs', 'disaster', 'environmental'] });
+    items.push({ title, url: link, publishedAt: pubDate, summary: desc, lat, lng, tags: ['gdacs', 'disaster', 'environmental'] });
   }
 
   return { items, meta: { source: 'gdacs', fetchedAt: new Date().toISOString(), latencyMs: Date.now() - start, total: items.length } };

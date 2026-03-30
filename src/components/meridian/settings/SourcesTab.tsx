@@ -12,7 +12,7 @@ import { AddCustomSourceModal }    from './AddCustomSourceModal';
 import type { FeedCategory, FeedTier } from '@/types/feeds';
 
 const ALL_CATEGORIES: FeedCategory[] = [
-  'conflict', 'government', 'cyber', 'news', 'maritime', 'aviation', 'environmental', 'sanctions',
+  'conflict', 'government', 'cyber', 'news', 'maritime', 'aviation', 'environmental', 'sanctions', 'financial',
 ];
 
 const TIER_BADGE_MAP: Record<FeedTier, 'free' | 'key' | 'paid'> = {

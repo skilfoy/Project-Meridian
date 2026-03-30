@@ -19,8 +19,25 @@ import { fetchUnScResolutions } from './providers/un-sc-resolutions';
 import { fetchWorldBank }       from './providers/world-bank';
 import { fetchWmoAlerts }       from './providers/wmo-alerts';
 import { fetchMalwareBazaar }   from './providers/malwarebazaar';
+import { fetchBleepingcomputer } from './providers/bleepingcomputer';
+import { fetchHackerNewsCyber }  from './providers/hacker-news-cyber';
+import { fetchSansIsc }          from './providers/sans-isc';
+import { fetchSecurityweek }     from './providers/securityweek';
+import { fetchKrebsSecurity }    from './providers/krebs-security';
+import { fetchDarkReading }      from './providers/dark-reading';
+import { fetchExploitDb }        from './providers/exploit-db';
+import { fetchCisaAdvisories }   from './providers/cisa-advisories';
+import { fetchNcscUk }           from './providers/ncsc-uk';
+import { fetchNatoNews }         from './providers/nato-news';
+import { fetchDefenseOne }       from './providers/defense-one';
+import { fetchReutersWorld }     from './providers/reuters-world';
+import { fetchBbcWorld }         from './providers/bbc-world';
+import { fetchAlJazeera }        from './providers/al-jazeera';
+import { fetchFeodoTracker }     from './providers/feodo-tracker';
+import { fetchOtx }              from './providers/otx';
+import { fetchAbuseIpdb }        from './providers/abuseipdb';
 import {
-  fetchAcled, fetchOtx, fetchShodan, fetchVirusTotal, fetchAbuseIpdb,
+  fetchAcled, fetchShodan, fetchVirusTotal,
   fetchGreyNoise, fetchCensys, fetchOpenSky, fetchAisStream, fetchNewsApi,
   fetchReddit, fetchTwitter, fetchRecordedFuture, fetchMandiant, fetchCrowdStrike,
   fetchIbmXforce, fetchMarineTraffic, fetchFlightAware, fetchPulsedive,
@@ -146,6 +163,111 @@ export const FEED_REGISTRY: FeedDefinition[] = [
     docsUrl: 'https://bazaar.abuse.ch/api/',
     defaultEnabled: false, refreshIntervalSec: 1800, requiresKey: false,
     fetch: fetchMalwareBazaar,
+  },
+  {
+    id: 'bleepingcomputer', name: 'BleepingComputer', category: 'cyber', tier: 'FREE',
+    description: 'BleepingComputer cyber security news — ransomware, breaches, malware',
+    docsUrl: 'https://www.bleepingcomputer.com/feed/',
+    defaultEnabled: true, refreshIntervalSec: 900, requiresKey: false,
+    fetch: fetchBleepingcomputer,
+  },
+  {
+    id: 'hacker-news-cyber', name: 'The Hacker News', category: 'cyber', tier: 'FREE',
+    description: 'The Hacker News — cybersecurity news and APT coverage',
+    docsUrl: 'https://feeds.feedburner.com/TheHackersNews',
+    defaultEnabled: true, refreshIntervalSec: 900, requiresKey: false,
+    fetch: fetchHackerNewsCyber,
+  },
+  {
+    id: 'sans-isc', name: 'SANS ISC', category: 'cyber', tier: 'FREE',
+    description: 'SANS Internet Storm Center threat diaries and IOC reports',
+    docsUrl: 'https://isc.sans.edu/rssfeed_full.xml',
+    defaultEnabled: true, refreshIntervalSec: 1800, requiresKey: false,
+    fetch: fetchSansIsc,
+  },
+  {
+    id: 'securityweek', name: 'SecurityWeek', category: 'cyber', tier: 'FREE',
+    description: 'SecurityWeek — enterprise cybersecurity news and analysis',
+    docsUrl: 'https://feeds.feedburner.com/securityweek',
+    defaultEnabled: true, refreshIntervalSec: 900, requiresKey: false,
+    fetch: fetchSecurityweek,
+  },
+  {
+    id: 'krebs-security', name: 'Krebs on Security', category: 'cyber', tier: 'FREE',
+    description: 'Krebs on Security — in-depth cybercrime and breach reporting',
+    docsUrl: 'https://krebsonsecurity.com/feed/',
+    defaultEnabled: true, refreshIntervalSec: 1800, requiresKey: false,
+    fetch: fetchKrebsSecurity,
+  },
+  {
+    id: 'dark-reading', name: 'Dark Reading', category: 'cyber', tier: 'FREE',
+    description: 'Dark Reading — enterprise security news and threat intelligence',
+    docsUrl: 'https://www.darkreading.com/rss/all.xml',
+    defaultEnabled: true, refreshIntervalSec: 900, requiresKey: false,
+    fetch: fetchDarkReading,
+  },
+  {
+    id: 'exploit-db', name: 'Exploit-DB', category: 'cyber', tier: 'FREE',
+    description: 'Offensive Security Exploit Database — public exploits and PoCs',
+    docsUrl: 'https://www.exploit-db.com/rss.xml',
+    defaultEnabled: true, refreshIntervalSec: 1800, requiresKey: false,
+    fetch: fetchExploitDb,
+  },
+  {
+    id: 'cisa-advisories', name: 'CISA Advisories', category: 'cyber', tier: 'FREE',
+    description: 'CISA cybersecurity advisories and ICS-CERT alerts',
+    docsUrl: 'https://www.cisa.gov/sites/default/files/feeds/alerts.xml',
+    defaultEnabled: true, refreshIntervalSec: 3600, requiresKey: false,
+    fetch: fetchCisaAdvisories,
+  },
+  {
+    id: 'ncsc-uk', name: 'NCSC UK Alerts', category: 'government', tier: 'FREE',
+    description: 'UK National Cyber Security Centre alerts and guidance',
+    docsUrl: 'https://www.ncsc.gov.uk/api/1/services/v1/news/rss.xml',
+    defaultEnabled: true, refreshIntervalSec: 3600, requiresKey: false,
+    fetch: fetchNcscUk,
+  },
+  {
+    id: 'nato-news', name: 'NATO Newsroom', category: 'government', tier: 'FREE',
+    description: 'NATO official news releases and statements',
+    docsUrl: 'https://www.nato.int/cps/en/natolive/news_rss.htm',
+    defaultEnabled: true, refreshIntervalSec: 3600, requiresKey: false,
+    fetch: fetchNatoNews,
+  },
+  {
+    id: 'defense-one', name: 'Defense One', category: 'government', tier: 'FREE',
+    description: 'Defense One — US defense and national security reporting',
+    docsUrl: 'https://www.defenseone.com/rss/all/',
+    defaultEnabled: true, refreshIntervalSec: 1800, requiresKey: false,
+    fetch: fetchDefenseOne,
+  },
+  {
+    id: 'reuters-world', name: 'Reuters World News', category: 'news', tier: 'FREE',
+    description: 'Reuters world news wire — geopolitics and international events',
+    docsUrl: 'https://feeds.reuters.com/Reuters/worldNews',
+    defaultEnabled: true, refreshIntervalSec: 900, requiresKey: false,
+    fetch: fetchReutersWorld,
+  },
+  {
+    id: 'bbc-world', name: 'BBC World News', category: 'news', tier: 'FREE',
+    description: 'BBC World Service — international news and analysis',
+    docsUrl: 'https://feeds.bbci.co.uk/news/world/rss.xml',
+    defaultEnabled: true, refreshIntervalSec: 900, requiresKey: false,
+    fetch: fetchBbcWorld,
+  },
+  {
+    id: 'al-jazeera', name: 'Al Jazeera', category: 'news', tier: 'FREE',
+    description: 'Al Jazeera English — Middle East and global news coverage',
+    docsUrl: 'https://www.aljazeera.com/xml/rss/all.xml',
+    defaultEnabled: true, refreshIntervalSec: 900, requiresKey: false,
+    fetch: fetchAlJazeera,
+  },
+  {
+    id: 'feodo-tracker', name: 'Feodo Tracker', category: 'cyber', tier: 'FREE',
+    description: 'abuse.ch C2 IP blocklist — botnet command-and-control servers',
+    docsUrl: 'https://feodotracker.abuse.ch/',
+    defaultEnabled: false, refreshIntervalSec: 3600, requiresKey: false,
+    fetch: fetchFeodoTracker,
   },
 
   // ─── KEY_REQUIRED FEEDS ───────────────────────────────────────────────────

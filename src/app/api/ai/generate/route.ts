@@ -5,7 +5,18 @@ import { generateTheaterIntel }  from '@/lib/ai';
 import { getTheater }            from '@/lib/theaters';
 import type { OrgContext }       from '@/types';
 
-const BodySchema = z.object({ theaterId: z.string().min(1) });
+const BodySchema = z.object({
+  theaterId: z.string().min(1),
+  incidents: z.array(z.object({
+    id:         z.string(),
+    source:     z.string(),
+    title:      z.string(),
+    severity:   z.string(),
+    domain:     z.string(),
+    occurredAt: z.string(),
+    tags:       z.array(z.string()),
+  })).optional(),
+});
 
 export async function POST(req: Request) {
   const { userId, orgId } = await auth();
@@ -30,7 +41,7 @@ export async function POST(req: Request) {
   };
 
   try {
-    const intel = await generateTheaterIntel(theater, orgContext);
+    const intel = await generateTheaterIntel(theater, orgContext, parsed.data.incidents as Parameters<typeof generateTheaterIntel>[2]);
     return NextResponse.json(intel);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'AI generation failed';
