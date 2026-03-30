@@ -16,24 +16,28 @@ model Organization {
   tlpDefault       TLP          @default(AMBER)
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
-  users            User[]
-  apiKeys          ApiKey[]
-  dashboards       Dashboard[]
-  watchlists       Watchlist[]
-  feedConfigs      FeedConfig[]
-  auditLogs        AuditLog[]
-  incidents        Incident[]
+  users               User[]
+  apiKeys             ApiKey[]
+  dashboards          Dashboard[]
+  watchlists          Watchlist[]
+  feedConfigs         FeedConfig[]
+  auditLogs           AuditLog[]
+  incidents           Incident[]
+  customSources       CustomSource[]
+  savedIncidents      SavedIncident[]
+  notificationConfig  Json?
 }
 
 model User {
-  id          String       @id @default(cuid())
-  orgId       String
-  clerkUserId String       @unique
-  email       String
-  role        Role         @default(ANALYST)
-  createdAt   DateTime     @default(now())
-  org         Organization @relation(fields: [orgId], references: [id])
-  dashboards  Dashboard[]
+  id            String       @id @default(cuid())
+  orgId         String
+  clerkUserId   String       @unique
+  email         String
+  role          Role         @default(ANALYST)
+  createdAt     DateTime     @default(now())
+  savedSearches Json?
+  org           Organization @relation(fields: [orgId], references: [id])
+  dashboards    Dashboard[]
 }
 
 model ApiKey {
@@ -112,6 +116,46 @@ model Watchlist {
   @@unique([orgId, userId])
 }
 
+model CustomSource {
+  id              String           @id @default(cuid())
+  orgId           String
+  name            String
+  description     String?
+  type            CustomSourceType
+  url             String
+  authType        String?
+  encryptedCreds  String?
+  enabled         Boolean          @default(true)
+  refreshInterval Int              @default(3600)
+  lastFetchedAt   DateTime?
+  lastError       String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  org             Organization     @relation(fields: [orgId], references: [id])
+
+  @@index([orgId])
+}
+
+model SavedIncident {
+  id         String       @id @default(cuid())
+  orgId      String
+  userId     String
+  incidentId String
+  source     String
+  title      String
+  summary    String?
+  url        String?
+  severity   Severity
+  theaterId  String?
+  occurredAt DateTime
+  savedAt    DateTime     @default(now())
+  notes      String?
+  org        Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId, userId])
+  @@unique([orgId, userId, incidentId])
+}
+
 model AuditLog {
   id        String       @id @default(cuid())
   orgId     String
@@ -153,4 +197,10 @@ enum Severity {
   MEDIUM
   LOW
   INFO
+}
+
+enum CustomSourceType {
+  RSS
+  REST_API
+  WEB_URL
 }

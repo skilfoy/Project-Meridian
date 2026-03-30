@@ -32,4 +32,3 @@ export const fetchIbmXforce    = makeStub('ibm-xforce');
 export const fetchMarineTraffic = makeStub('marinetraffic');
 export const fetchFlightAware  = makeStub('flightaware');
 export const fetchPulsedive    = makeStub('pulsedive');
-export const fetchMalwareBazaar = makeStub('malwarebazaar');

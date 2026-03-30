@@ -70,3 +70,10 @@ body {
 .animate-scanline   { animation: scanline 4s linear infinite; }
 .animate-pulse-ring { animation: pulse-ring 1.5s ease-out infinite; }
 .animate-blink      { animation: blink 1s ease-in-out infinite; }
+
+/* Leaflet dark theme overrides */
+.leaflet-container { background: #0a0e1a !important; }
+.leaflet-popup-content-wrapper { background: #111827; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.1); }
+.leaflet-popup-tip { background: #111827; }
+.leaflet-control-attribution { background: rgba(0,0,0,0.5) !important; color: #475569 !important; }
+.leaflet-control-attribution a { color: #475569 !important; }

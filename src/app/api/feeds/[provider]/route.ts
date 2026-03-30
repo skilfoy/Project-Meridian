@@ -2,25 +2,30 @@ import { auth }                  from '@clerk/nextjs/server';
 import { NextResponse }          from 'next/server';
 import { fetchFeedWithCache }    from '@/lib/feeds/fetcher';
 import { getFeed }               from '@/lib/feeds/registry';
+import { db }                    from '@/lib/db';
+import { decryptKey }            from '@/lib/crypto';
 import type { FeedParams }       from '@/types/feeds';
 
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ provider: string }> }
 ) {
-  // In development with placeholder Clerk keys, allow unauthenticated access
   let userId: string | null = null;
+  let orgId:  string | null | undefined = null;
+
   try {
-    ({ userId } = await auth());
+    ({ userId, orgId } = await auth());
   } catch {
     if (process.env.NODE_ENV !== 'development') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    userId = 'dev';
   }
+
   if (!userId && process.env.NODE_ENV !== 'development') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const resolvedOrgId = orgId ?? userId ?? 'dev';
 
   const { provider } = await params;
   const { searchParams } = new URL(req.url);
@@ -34,11 +39,26 @@ export async function GET(
     filters:   Object.fromEntries(searchParams.entries()),
   };
 
-  // For now, API keys from env (production will pull from DB + decrypt)
-  const envKey = process.env[`FEED_KEY_${provider.toUpperCase().replace(/-/g, '_')}`];
+  let apiKey: string | undefined;
+
+  if (feedDef.requiresKey && resolvedOrgId !== 'dev') {
+    const stored = await db.apiKey.findFirst({
+      where: { orgId: resolvedOrgId, provider, enabled: true },
+    });
+    if (!stored) {
+      return NextResponse.json(
+        { error: 'API key required — add it in Settings > Sources' },
+        { status: 402 }
+      );
+    }
+    apiKey = decryptKey(stored.encryptedKey, resolvedOrgId);
+  } else if (feedDef.requiresKey && resolvedOrgId === 'dev') {
+    // dev fallback: allow env key for local testing
+    apiKey = process.env[`FEED_KEY_${provider.toUpperCase().replace(/-/g, '_')}`];
+  }
 
   try {
-    const result = await fetchFeedWithCache(provider, feedParams, envKey);
+    const result = await fetchFeedWithCache(provider, feedParams, apiKey);
     return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Feed fetch failed';

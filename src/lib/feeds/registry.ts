@@ -1,21 +1,29 @@
 import type { FeedDefinition } from '@/types/feeds';
-import { fetchGdelt }       from './providers/gdelt';
-import { fetchCisaKev }     from './providers/cisa';
-import { fetchNvd }         from './providers/nvd';
-import { fetchReliefWeb }   from './providers/reliefweb';
-import { fetchUrlhaus }     from './providers/urlhaus';
-import { fetchThreatFox }   from './providers/threatfox';
-import { fetchGuardian }    from './providers/guardian';
-import { fetchNyt }         from './providers/nyt';
-import { fetchNasaFirms }   from './providers/nasa-firms';
-import { fetchGdacs }       from './providers/gdacs';
-import { fetchStateDept }   from './providers/state-dept';
-import { fetchFbiWanted }   from './providers/fbi-wanted';
+import { fetchGdelt }           from './providers/gdelt';
+import { fetchCisaKev }         from './providers/cisa';
+import { fetchNvd }             from './providers/nvd';
+import { fetchReliefWeb }       from './providers/reliefweb';
+import { fetchUrlhaus }         from './providers/urlhaus';
+import { fetchThreatFox }       from './providers/threatfox';
+import { fetchGuardian }        from './providers/guardian';
+import { fetchNyt }             from './providers/nyt';
+import { fetchNasaFirms }       from './providers/nasa-firms';
+import { fetchGdacs }           from './providers/gdacs';
+import { fetchStateDept }       from './providers/state-dept';
+import { fetchFbiWanted }       from './providers/fbi-wanted';
+import { fetchUsgsEarthquake }  from './providers/usgs-earthquake';
+import { fetchWhoDisease }      from './providers/who-disease';
+import { fetchOpenSanctions }   from './providers/opensanctions';
+import { fetchInterpolNotices } from './providers/interpol-notices';
+import { fetchUnScResolutions } from './providers/un-sc-resolutions';
+import { fetchWorldBank }       from './providers/world-bank';
+import { fetchWmoAlerts }       from './providers/wmo-alerts';
+import { fetchMalwareBazaar }   from './providers/malwarebazaar';
 import {
   fetchAcled, fetchOtx, fetchShodan, fetchVirusTotal, fetchAbuseIpdb,
   fetchGreyNoise, fetchCensys, fetchOpenSky, fetchAisStream, fetchNewsApi,
   fetchReddit, fetchTwitter, fetchRecordedFuture, fetchMandiant, fetchCrowdStrike,
-  fetchIbmXforce, fetchMarineTraffic, fetchFlightAware, fetchPulsedive, fetchMalwareBazaar,
+  fetchIbmXforce, fetchMarineTraffic, fetchFlightAware, fetchPulsedive,
 } from './providers/stubs';
 
 export const FEED_REGISTRY: FeedDefinition[] = [
@@ -82,6 +90,62 @@ export const FEED_REGISTRY: FeedDefinition[] = [
     docsUrl: 'https://api.fbi.gov/',
     defaultEnabled: false, refreshIntervalSec: 3600, requiresKey: false,
     fetch: fetchFbiWanted,
+  },
+  {
+    id: 'usgs-earthquake', name: 'USGS Earthquakes', category: 'environmental', tier: 'FREE',
+    description: 'USGS significant earthquakes in the past week — GeoJSON feed',
+    docsUrl: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php',
+    defaultEnabled: true, refreshIntervalSec: 3600, requiresKey: false,
+    fetch: fetchUsgsEarthquake,
+  },
+  {
+    id: 'who-disease', name: 'WHO Disease Outbreaks', category: 'environmental', tier: 'FREE',
+    description: 'World Health Organization disease outbreak news releases',
+    docsUrl: 'https://www.who.int/rss-feeds/news-releases.xml',
+    defaultEnabled: true, refreshIntervalSec: 3600, requiresKey: false,
+    fetch: fetchWhoDisease,
+  },
+  {
+    id: 'opensanctions', name: 'OpenSanctions', category: 'sanctions', tier: 'FREE',
+    description: 'Global sanctions, PEPs, and financial crime data',
+    docsUrl: 'https://www.opensanctions.org/api/',
+    defaultEnabled: true, refreshIntervalSec: 86400, requiresKey: false,
+    fetch: fetchOpenSanctions,
+  },
+  {
+    id: 'interpol-notices', name: 'Interpol Red Notices', category: 'government', tier: 'FREE',
+    description: 'Interpol Red Notices for wanted persons',
+    docsUrl: 'https://interpol.int/en/How-we-work/Notices/Red-Notices',
+    defaultEnabled: true, refreshIntervalSec: 3600, requiresKey: false,
+    fetch: fetchInterpolNotices,
+  },
+  {
+    id: 'un-sc-resolutions', name: 'UN Security Council', category: 'government', tier: 'FREE',
+    description: 'UN Security Council press releases and resolutions',
+    docsUrl: 'https://www.un.org/securitycouncil/',
+    defaultEnabled: true, refreshIntervalSec: 3600, requiresKey: false,
+    fetch: fetchUnScResolutions,
+  },
+  {
+    id: 'world-bank', name: 'World Bank Indicators', category: 'conflict', tier: 'FREE',
+    description: 'World Bank conflict/violence indicators by country',
+    docsUrl: 'https://data.worldbank.org/indicator/VC.IHR.PSRC.P5',
+    defaultEnabled: false, refreshIntervalSec: 86400, requiresKey: false,
+    fetch: fetchWorldBank,
+  },
+  {
+    id: 'wmo-alerts', name: 'NWS Weather Alerts', category: 'environmental', tier: 'FREE',
+    description: 'US National Weather Service active alerts',
+    docsUrl: 'https://api.weather.gov/',
+    defaultEnabled: false, refreshIntervalSec: 900, requiresKey: false,
+    fetch: fetchWmoAlerts,
+  },
+  {
+    id: 'malwarebazaar', name: 'MalwareBazaar', category: 'cyber', tier: 'FREE',
+    description: 'abuse.ch malware sample repository',
+    docsUrl: 'https://bazaar.abuse.ch/api/',
+    defaultEnabled: false, refreshIntervalSec: 1800, requiresKey: false,
+    fetch: fetchMalwareBazaar,
   },
 
   // ─── KEY_REQUIRED FEEDS ───────────────────────────────────────────────────
@@ -238,13 +302,6 @@ export const FEED_REGISTRY: FeedDefinition[] = [
     docsUrl: 'https://pulsedive.com/api/',
     defaultEnabled: false, refreshIntervalSec: 1800, requiresKey: true,
     fetch: fetchPulsedive,
-  },
-  {
-    id: 'malwarebazaar', name: 'MalwareBazaar', category: 'cyber', tier: 'FREE',
-    description: 'abuse.ch malware sample repository',
-    docsUrl: 'https://bazaar.abuse.ch/api/',
-    defaultEnabled: false, refreshIntervalSec: 900, requiresKey: false,
-    fetch: fetchMalwareBazaar,
   },
 ];
 

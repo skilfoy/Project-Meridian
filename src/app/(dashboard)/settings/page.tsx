@@ -1,7 +1,10 @@
-export default function Page() {
+import { Suspense } from 'react';
+import { SettingsLayout } from '@/components/meridian/settings/SettingsLayout';
+
+export default function SettingsPage() {
   return (
-    <div className="flex h-full items-center justify-center text-slate-600">
-      <p className="text-sm">Coming soon</p>
-    </div>
+    <Suspense fallback={<div className="flex h-full items-center justify-center text-slate-600 text-sm">Loading…</div>}>
+      <SettingsLayout />
+    </Suspense>
   );
 }

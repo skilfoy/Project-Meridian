@@ -1,6 +1,7 @@
 'use client';
-import { ExternalLink, Clock } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { useState }             from 'react';
+import { ExternalLink, Clock, Bookmark } from 'lucide-react';
+import { formatDistanceToNow }  from 'date-fns';
 import type { NormalizedIncident } from '@/types/feeds';
 
 const SEV_COLORS: Record<string, string> = {
@@ -12,11 +13,38 @@ const SEV_COLORS: Record<string, string> = {
 };
 
 interface IncidentFeedProps {
-  incidents: NormalizedIncident[];
-  loading?: boolean;
+  incidents:  NormalizedIncident[];
+  loading?:   boolean;
+  onSave?:    (inc: NormalizedIncident) => void;
+  theaterId?: string;
 }
 
-export function IncidentFeed({ incidents, loading }: IncidentFeedProps) {
+export function IncidentFeed({ incidents, loading, onSave, theaterId }: IncidentFeedProps) {
+  const [saved, setSaved] = useState<Set<string>>(new Set());
+
+  const handleSave = async (inc: NormalizedIncident) => {
+    setSaved((prev) => new Set([...prev, inc.id]));
+    try {
+      await fetch('/api/saved', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          incidentId: inc.id,
+          source:     inc.source,
+          title:      inc.title,
+          summary:    inc.summary,
+          url:        inc.url,
+          severity:   inc.severity,
+          theaterId:  theaterId,
+          occurredAt: inc.occurredAt ?? new Date().toISOString(),
+        }),
+      });
+    } catch {
+      setSaved((prev) => { const n = new Set(prev); n.delete(inc.id); return n; });
+    }
+    onSave?.(inc);
+  };
+
   if (loading) {
     return (
       <div className="space-y-2">
@@ -46,11 +74,22 @@ export function IncidentFeed({ incidents, loading }: IncidentFeedProps) {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <p className="text-[13px] text-slate-200 leading-snug line-clamp-2">{inc.title}</p>
-              {inc.url && (
-                <a href={inc.url} target="_blank" rel="noopener noreferrer" className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5">
-                  <ExternalLink className="w-3 h-3 text-slate-400" />
-                </a>
-              )}
+              <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5">
+                {onSave && (
+                  <button
+                    onClick={() => handleSave(inc)}
+                    className={`transition-colors ${saved.has(inc.id) ? 'text-cyan-400' : 'text-slate-500 hover:text-cyan-400'}`}
+                    title="Save incident"
+                  >
+                    <Bookmark className={`w-3 h-3 ${saved.has(inc.id) ? 'fill-current' : ''}`} />
+                  </button>
+                )}
+                {inc.url && (
+                  <a href={inc.url} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="w-3 h-3 text-slate-400" />
+                  </a>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-[10px] text-slate-500 uppercase tracking-wider">{inc.source}</span>

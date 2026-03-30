@@ -1,5 +1,5 @@
-import { FeedsPage } from '@/components/meridian/FeedsPage';
+import { redirect } from 'next/navigation';
 
 export default function FeedsRoute() {
-  return <FeedsPage />;
+  redirect('/settings?tab=sources');
 }
