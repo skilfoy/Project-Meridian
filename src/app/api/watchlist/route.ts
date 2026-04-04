@@ -51,7 +51,7 @@ export async function DELETE(req: Request) {
     where: { orgId_userId: { orgId: ctx.orgId, userId: ctx.userId } },
   });
 
-  const theaterIds = (existing?.theaterIds ?? []).filter((id) => id !== theaterId);
+  const theaterIds = (existing?.theaterIds ?? []).filter((id: string) => id !== theaterId);
 
   await db.watchlist.upsert({
     where:  { orgId_userId: { orgId: ctx.orgId, userId: ctx.userId } },
