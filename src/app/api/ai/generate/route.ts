@@ -1,20 +1,20 @@
-import { auth }                  from '@clerk/nextjs/server';
-import { NextResponse }          from 'next/server';
-import { z }                     from 'zod';
-import { generateTheaterIntel }  from '@/lib/ai';
-import { getTheater }            from '@/lib/theaters';
-import type { OrgContext }       from '@/types';
+import { auth } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { generateTheaterIntel, getAIConfigurationStatus } from '@/lib/ai';
+import { getTheater } from '@/lib/theaters';
+import type { OrgContext } from '@/types';
 
 const BodySchema = z.object({
   theaterId: z.string().min(1),
   incidents: z.array(z.object({
-    id:         z.string(),
-    source:     z.string(),
-    title:      z.string(),
-    severity:   z.string(),
-    domain:     z.string(),
+    id: z.string(),
+    source: z.string(),
+    title: z.string(),
+    severity: z.string(),
+    domain: z.string(),
     occurredAt: z.string(),
-    tags:       z.array(z.string()),
+    tags: z.array(z.string()),
   })).optional(),
 });
 
@@ -29,22 +29,26 @@ export async function POST(req: Request) {
   const theater = getTheater(parsed.data.theaterId);
   if (!theater) return NextResponse.json({ error: 'Unknown theater' }, { status: 404 });
 
-  if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY.includes('REPLACE')) {
-    return NextResponse.json({ error: 'ANTHROPIC_API_KEY not configured' }, { status: 503 });
-  }
-
   const orgContext: OrgContext = {
-    orgId:  orgId ?? userId,
+    orgId: orgId ?? userId,
     userId,
-    plan:   'FREE',
-    role:   'ANALYST',
+    plan: 'FREE',
+    role: 'ANALYST',
   };
 
   try {
-    const intel = await generateTheaterIntel(theater, orgContext, parsed.data.incidents as Parameters<typeof generateTheaterIntel>[2]);
-    return NextResponse.json(intel);
+    const intel = await generateTheaterIntel(
+      theater,
+      orgContext,
+      parsed.data.incidents as Parameters<typeof generateTheaterIntel>[2]
+    );
+
+    return NextResponse.json({
+      ...intel,
+      generation: getAIConfigurationStatus(),
+    });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'AI generation failed';
+    const message = err instanceof Error ? err.message : 'Assessment generation failed';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
