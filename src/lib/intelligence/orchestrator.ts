@@ -29,7 +29,8 @@ function unique(values: string[]): string[] {
 
 async function updateFeedHealth(
   orgId: string,
-  feedResult: AggregatedFeedResult
+  feedResult: AggregatedFeedResult,
+  enabledOnCreate: Map<string, boolean>
 ): Promise<void> {
   const fetchedAt = new Date(feedResult.meta.fetchedAt);
   const successfulIds = new Set(feedResult.feedResults.map((result) => result.feedId));
@@ -43,7 +44,7 @@ async function updateFeedHealth(
         create: {
           orgId,
           feedId,
-          enabled: true,
+          enabled: enabledOnCreate.get(feedId) ?? false,
           lastFetchedAt: successfulIds.has(feedId) ? fetchedAt : undefined,
           lastError: errors.get(feedId),
         },
@@ -68,17 +69,27 @@ export async function collectAndAnalyze(
     throw new Error(`Unknown feeds: ${unknownFeedIds.join(', ')}`);
   }
 
-  const [configs, storedKeys] = await Promise.all([
-    db.feedConfig.findMany({ where: { orgId } }),
-    db.apiKey.findMany({ where: { orgId, enabled: true } }),
-  ]);
-
+  const configs = await db.feedConfig.findMany({ where: { orgId } });
   const configByFeed = new Map(configs.map((config) => [config.feedId, config]));
   const selectedDefinitions = FEED_REGISTRY.filter((definition) => {
     if (requestedFeedIds) return requestedFeedIds.includes(definition.id);
     const config = configByFeed.get(definition.id);
     return config?.enabled ?? definition.defaultEnabled;
   });
+  const selectedFeedIds = selectedDefinitions.map((definition) => definition.id);
+  const credentialFeedIds = selectedDefinitions
+    .filter((definition) => definition.requiresKey)
+    .map((definition) => definition.id);
+
+  const storedKeys = credentialFeedIds.length === 0
+    ? []
+    : await db.apiKey.findMany({
+        where: {
+          orgId,
+          enabled: true,
+          provider: { in: credentialFeedIds },
+        },
+      });
 
   const apiKeys = new Map<string, string>();
   const credentialErrors: Array<{ feedId: string; error: string }> = [];
@@ -118,7 +129,15 @@ export async function collectAndAnalyze(
     },
   };
 
-  await updateFeedHealth(orgId, feedResult);
+  const enabledOnCreate = new Map(
+    selectedDefinitions.map((definition) => {
+      const existing = configByFeed.get(definition.id);
+      const enabled = existing?.enabled ?? (requestedFeedIds ? false : definition.defaultEnabled);
+      return [definition.id, enabled] as const;
+    })
+  );
+
+  await updateFeedHealth(orgId, feedResult, enabledOnCreate);
 
   const analysis = analyzeIncidents(feedResult.incidents, {
     ...input.options,
@@ -132,7 +151,7 @@ export async function collectAndAnalyze(
 
   return {
     theaterId,
-    selectedFeedIds: selectedDefinitions.map((definition) => definition.id),
+    selectedFeedIds,
     feedResult,
     analysis,
     persisted,
