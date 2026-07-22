@@ -28,36 +28,40 @@ Epic: #3
 - Historical run comparison
 - Signal Center and provenance inspection
 - Persistent investigation cases and analyst notes
-- GitHub Actions validation
+- Provider-neutral AI configuration with Anthropic-specific runtime dependencies removed
+- Source capability registry with governed support, reliability, independence, ownership, freshness, coverage, and licensing metadata
+- Bounded retries, circuit breakers, stale-on-error responses, and last-known-good retention
+- Tenant-scoped source-health persistence and authenticated read APIs
+- GitHub Actions validation for lockfile integrity, type checking, deterministic intelligence, source governance, and production builds
 - Vercel production deployment from `main`
+- `ENCRYPTION_MASTER_SECRET` configured directly in Vercel for Production and Preview
 
 ## Active work ledger
 
 | State | Issue | Workstream | Dependency |
 |---|---:|---|---|
-| In progress | #4 | Production readiness and authenticated smoke tests | Vercel runtime configuration |
-| In progress | #5 | Provider-neutral cleanup and CI hardening | None |
-| Ready | #6 | Source capability registry and health contracts | Existing feed registry |
-| Ready | #7 | Circuit breakers, stale-on-error, and last-known-good data | #6 |
+| In progress | #4 | Production readiness and authenticated smoke tests | Fresh Preview and Production deployments |
+| Complete | #5 | Provider-neutral cleanup and CI hardening | None |
+| Complete | #6 | Source capability registry and health contracts | None |
+| Complete | #7 | Circuit breakers, stale-on-error, and last-known-good data | None |
 | Ready | #8 | Tenant-isolation tests and release gates | Isolated test database |
 | Ready | #9 | Structured logs, correlation IDs, and error reporting | Optional telemetry configuration |
-| Ready | #10 | Canonical entity, assertion, alias, and relationship graph | #6 for source reliability metadata |
+| Ready | #10 | Canonical entity, assertion, alias, and relationship graph | Source reliability metadata complete |
 
 ## Intended execution sequence
 
-1. Complete #5 and the code portion of #4.
-2. Finish #4 production configuration and runtime validation.
-3. Implement #6 source contracts and health visibility.
-4. Implement #7 collection resilience.
+1. Redeploy Preview with the current Vercel secret configuration.
+2. Validate `/api/ready` and `/api/health` in Preview.
+3. Merge PR #2 and validate the resulting Production deployment.
+4. Run authenticated production persistence and collection smoke tests.
 5. Advance #8 and #9 engineering controls.
 6. Implement #10 graph foundation.
 
-## Blocked by external configuration
+## Remaining external configuration
 
-- Production readiness returning HTTP 200 requires a valid `ENCRYPTION_MASTER_SECRET` in Vercel.
-- Authenticated production persistence tests require working Clerk and database runtime configuration.
 - Redis-backed cache and recurring collection tests require Upstash or another Redis runtime.
 - Destructive tenant-isolation testing requires an isolated database or disposable Supabase branch.
+- Optional Sentry, PostHog, billing, and AI synthesis remain disabled until deliberately configured.
 
 ## Deferred
 
