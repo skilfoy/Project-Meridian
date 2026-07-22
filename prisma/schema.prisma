@@ -29,6 +29,8 @@ model Organization {
   intelligenceObservations IntelligenceObservationRecord[]
   intelligenceEvidence     IntelligenceEvidenceRecord[]
   intelligenceSignals      IntelligenceSignalRecord[]
+  signalCases              SignalCase[]
+  signalCaseNotes          SignalCaseNote[]
   notificationConfig       Json?
 }
 
@@ -174,43 +176,43 @@ model AuditLog {
 }
 
 model IntelligenceRun {
-  id           String                          @id @default(cuid())
-  orgId        String
-  theaterId    String?
+  id            String                          @id @default(cuid())
+  orgId         String
+  theaterId     String?
   methodVersion String
-  generatedAt  DateTime
-  coverage     Json
-  feedMeta     Json?
-  createdAt    DateTime                        @default(now())
-  org          Organization                    @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  observations IntelligenceObservationRecord[]
-  signals      IntelligenceSignalRecord[]
+  generatedAt   DateTime
+  coverage      Json
+  feedMeta      Json?
+  createdAt     DateTime                        @default(now())
+  org           Organization                    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  observations  IntelligenceObservationRecord[]
+  signals       IntelligenceSignalRecord[]
 
   @@index([orgId, generatedAt])
   @@index([orgId, theaterId, generatedAt])
 }
 
 model IntelligenceObservationRecord {
-  id            String                       @id @default(cuid())
-  orgId         String
-  runId         String
-  observationId String
-  source        String
+  id             String                       @id @default(cuid())
+  orgId          String
+  runId          String
+  observationId  String
+  source         String
   sourceRecordId String?
-  title         String
-  summary       String?
-  domain        String
-  severity      Severity
-  occurredAt    DateTime
-  observedAt    DateTime
-  latitude      Float?
-  longitude     Float?
-  tags          String[]
-  contentHash   String
-  createdAt     DateTime                     @default(now())
-  org           Organization                 @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  run           IntelligenceRun              @relation(fields: [runId], references: [id], onDelete: Cascade)
-  evidence      IntelligenceEvidenceRecord[]
+  title          String
+  summary        String?
+  domain         String
+  severity       Severity
+  occurredAt     DateTime
+  observedAt     DateTime
+  latitude       Float?
+  longitude      Float?
+  tags           String[]
+  contentHash    String
+  createdAt      DateTime                     @default(now())
+  org            Organization                 @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  run            IntelligenceRun              @relation(fields: [runId], references: [id], onDelete: Cascade)
+  evidence       IntelligenceEvidenceRecord[]
 
   @@unique([runId, observationId])
   @@index([orgId, contentHash])
@@ -264,6 +266,49 @@ model IntelligenceSignalRecord {
   @@index([runId])
 }
 
+model SignalCase {
+  id               String            @id @default(cuid())
+  orgId            String
+  signalKey        String
+  theaterId        String?
+  family           String
+  title            String
+  status           SignalCaseStatus  @default(OPEN)
+  disposition      SignalDisposition?
+  acknowledgedAt   DateTime?
+  acknowledgedBy   String?
+  assignedTo       String?
+  watched          Boolean           @default(false)
+  firstSeenAt      DateTime
+  lastSeenAt       DateTime
+  latestRunId      String?
+  latestSignalId   String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  org              Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  notes            SignalCaseNote[]
+
+  @@unique([orgId, signalKey])
+  @@index([orgId, status, updatedAt])
+  @@index([orgId, watched, updatedAt])
+  @@index([orgId, assignedTo, updatedAt])
+}
+
+model SignalCaseNote {
+  id        String       @id @default(cuid())
+  orgId     String
+  caseId    String
+  authorId  String
+  body      String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  signalCase SignalCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId, createdAt])
+  @@index([orgId, createdAt])
+}
+
 enum Plan {
   FREE
   ANALYST
@@ -298,4 +343,22 @@ enum CustomSourceType {
   RSS
   REST_API
   WEB_URL
+}
+
+enum SignalCaseStatus {
+  OPEN
+  ACKNOWLEDGED
+  INVESTIGATING
+  MONITORING
+  CLOSED
+}
+
+enum SignalDisposition {
+  TRUE_POSITIVE
+  FALSE_POSITIVE
+  BENIGN
+  INFORMATIONAL
+  DUPLICATE
+  MITIGATED
+  ACCEPTED_RISK
 }
