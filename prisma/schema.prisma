@@ -7,25 +7,29 @@ datasource db {
 }
 
 model Organization {
-  id               String       @id @default(cuid())
-  name             String
-  slug             String       @unique
-  plan             Plan         @default(FREE)
-  stripeCustomerId String?
-  stripeSubId      String?
-  tlpDefault       TLP          @default(AMBER)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  users               User[]
-  apiKeys             ApiKey[]
-  dashboards          Dashboard[]
-  watchlists          Watchlist[]
-  feedConfigs         FeedConfig[]
-  auditLogs           AuditLog[]
-  incidents           Incident[]
-  customSources       CustomSource[]
-  savedIncidents      SavedIncident[]
-  notificationConfig  Json?
+  id                       String                          @id @default(cuid())
+  name                     String
+  slug                     String                          @unique
+  plan                     Plan                            @default(FREE)
+  stripeCustomerId         String?
+  stripeSubId              String?
+  tlpDefault               TLP                             @default(AMBER)
+  createdAt                DateTime                        @default(now())
+  updatedAt                DateTime                        @updatedAt
+  users                    User[]
+  apiKeys                  ApiKey[]
+  dashboards               Dashboard[]
+  watchlists               Watchlist[]
+  feedConfigs              FeedConfig[]
+  auditLogs                AuditLog[]
+  incidents                Incident[]
+  customSources            CustomSource[]
+  savedIncidents           SavedIncident[]
+  intelligenceRuns         IntelligenceRun[]
+  intelligenceObservations IntelligenceObservationRecord[]
+  intelligenceEvidence     IntelligenceEvidenceRecord[]
+  intelligenceSignals      IntelligenceSignalRecord[]
+  notificationConfig       Json?
 }
 
 model User {
@@ -167,6 +171,97 @@ model AuditLog {
   userAgent String?
   createdAt DateTime     @default(now())
   org       Organization @relation(fields: [orgId], references: [id])
+}
+
+model IntelligenceRun {
+  id           String                          @id @default(cuid())
+  orgId        String
+  theaterId    String?
+  methodVersion String
+  generatedAt  DateTime
+  coverage     Json
+  feedMeta     Json?
+  createdAt    DateTime                        @default(now())
+  org          Organization                    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  observations IntelligenceObservationRecord[]
+  signals      IntelligenceSignalRecord[]
+
+  @@index([orgId, generatedAt])
+  @@index([orgId, theaterId, generatedAt])
+}
+
+model IntelligenceObservationRecord {
+  id            String                       @id @default(cuid())
+  orgId         String
+  runId         String
+  observationId String
+  source        String
+  sourceRecordId String?
+  title         String
+  summary       String?
+  domain        String
+  severity      Severity
+  occurredAt    DateTime
+  observedAt    DateTime
+  latitude      Float?
+  longitude     Float?
+  tags          String[]
+  contentHash   String
+  createdAt     DateTime                     @default(now())
+  org           Organization                 @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  run           IntelligenceRun              @relation(fields: [runId], references: [id], onDelete: Cascade)
+  evidence      IntelligenceEvidenceRecord[]
+
+  @@unique([runId, observationId])
+  @@index([orgId, contentHash])
+  @@index([orgId, occurredAt])
+  @@index([runId])
+}
+
+model IntelligenceEvidenceRecord {
+  id                  String                        @id @default(cuid())
+  orgId               String
+  observationRecordId String
+  evidenceId          String
+  source              String
+  sourceRecordId      String?
+  url                 String?
+  capturedAt          DateTime
+  occurredAt          DateTime
+  reliability         Float
+  independenceGroup   String
+  contentHash         String
+  createdAt           DateTime                      @default(now())
+  org                 Organization                  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  observation         IntelligenceObservationRecord @relation(fields: [observationRecordId], references: [id], onDelete: Cascade)
+
+  @@unique([observationRecordId, evidenceId])
+  @@index([orgId, source, capturedAt])
+  @@index([orgId, independenceGroup, occurredAt])
+}
+
+model IntelligenceSignalRecord {
+  id             String          @id @default(cuid())
+  orgId          String
+  runId          String
+  signalId       String
+  family         String
+  title          String
+  summary        String
+  detectedAt     DateTime
+  methodVersion  String
+  scores         Json
+  observationIds String[]
+  evidenceIds    String[]
+  dimensions     Json
+  createdAt      DateTime        @default(now())
+  org            Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  run            IntelligenceRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, signalId])
+  @@index([orgId, family, detectedAt])
+  @@index([orgId, detectedAt])
+  @@index([runId])
 }
 
 enum Plan {
