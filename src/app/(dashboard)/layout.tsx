@@ -5,19 +5,20 @@ import { UserButton } from '@clerk/nextjs';
 import { clsx } from 'clsx';
 import {
   Globe, LayoutDashboard, Eye, BarChart2, Users,
-  Rss, Bug, Bookmark, Settings, Shield,
+  Rss, Bug, Bookmark, Settings, Shield, RadioTower,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { href: '/globe',     icon: Globe,           label: 'Globe' },
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/signals',   icon: RadioTower,      label: 'Signal Center' },
   { href: '/watchlist', icon: Eye,             label: 'Watchlist' },
-  { href: '/compare',  icon: BarChart2,        label: 'Compare' },
-  { href: '/actors',   icon: Users,            label: 'Actors' },
-  { href: '/feeds',    icon: Rss,              label: 'API Feeds' },
-  { href: '/debug',    icon: Bug,              label: 'Debug' },
-  { href: '/saved',    icon: Bookmark,         label: 'Saved' },
-  { href: '/settings', icon: Settings,         label: 'Settings' },
+  { href: '/compare',   icon: BarChart2,        label: 'Compare' },
+  { href: '/actors',    icon: Users,            label: 'Actors' },
+  { href: '/feeds',     icon: Rss,              label: 'API Feeds' },
+  { href: '/debug',     icon: Bug,              label: 'Debug' },
+  { href: '/saved',     icon: Bookmark,         label: 'Saved' },
+  { href: '/settings',  icon: Settings,         label: 'Settings' },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -25,14 +26,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-full bg-[#0a0e1a] text-slate-200">
-      {/* Sidebar */}
       <aside className="flex flex-col w-16 shrink-0 border-r border-white/[0.06] bg-[#0f1629]">
-        {/* Logo */}
         <div className="flex items-center justify-center h-14 border-b border-white/[0.06]">
           <Shield className="w-6 h-6 text-cyan-400" />
         </div>
 
-        {/* Nav */}
         <nav className="flex flex-col items-center gap-1 py-3 flex-1">
           {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
             const active = pathname === href || pathname.startsWith(href + '/');
@@ -54,13 +52,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
 
-        {/* User */}
         <div className="flex items-center justify-center pb-4">
           <UserButton />
         </div>
       </aside>
 
-      {/* Main content */}
       <main className="flex-1 overflow-hidden min-w-0">
         {children}
       </main>
