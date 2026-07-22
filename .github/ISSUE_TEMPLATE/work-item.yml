@@ -1,0 +1,51 @@
+name: Meridian work item
+description: Track an executable Meridian development block
+title: "[Workstream] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for work that can be completed and validated within one development block.
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: State the concrete outcome this work must deliver.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Define included work and explicit boundaries.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List observable conditions required for completion.
+      placeholder: |
+        - [ ] Implementation is complete
+        - [ ] Type checking passes
+        - [ ] Verification and build pass
+        - [ ] Documentation is updated
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and blockers
+      description: Link prerequisite issues, external configuration, or known blockers.
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Completion evidence
+      description: List the required commits, tests, deployments, migrations, or runtime validation.
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks and rollback
+      description: Describe principal risks and the rollback path.
