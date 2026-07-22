@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { analyzeIncidents } from '@/lib/intelligence/engine';
+import { persistAnalysis } from '@/lib/intelligence/persistence';
 
 const SeveritySchema = z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO']);
 
@@ -35,14 +36,17 @@ const OptionsSchema = z.object({
 
 const RequestSchema = z.object({
   incidents: z.array(IncidentSchema).max(5000),
+  theaterId: z.string().min(1).max(128).optional(),
+  persist: z.boolean().default(false),
   options: OptionsSchema,
 });
 
 export async function POST(req: Request) {
   let userId: string | null = null;
+  let orgId: string | null | undefined = null;
 
   try {
-    ({ userId } = await auth());
+    ({ userId, orgId } = await auth());
   } catch {
     if (process.env.NODE_ENV !== 'development') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -53,6 +57,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const resolvedOrgId = orgId ?? userId ?? 'dev';
   const body = await req.json().catch(() => null);
   const parsed = RequestSchema.safeParse(body);
 
@@ -71,12 +76,26 @@ export async function POST(req: Request) {
 
   try {
     const analysis = analyzeIncidents(parsed.data.incidents, parsed.data.options);
-    return NextResponse.json(analysis, {
-      headers: {
-        'Cache-Control': 'no-store',
-        'X-Meridian-Method-Version': analysis.methodVersion,
+    const persistence = parsed.data.persist
+      ? await persistAnalysis({
+          orgId: resolvedOrgId,
+          theaterId: parsed.data.theaterId,
+          analysis,
+        })
+      : undefined;
+
+    return NextResponse.json(
+      {
+        ...analysis,
+        persistence: persistence ?? { persisted: false },
       },
-    });
+      {
+        headers: {
+          'Cache-Control': 'no-store',
+          'X-Meridian-Method-Version': analysis.methodVersion,
+        },
+      }
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Intelligence analysis failed';
     return NextResponse.json({ error: message }, { status: 422 });
