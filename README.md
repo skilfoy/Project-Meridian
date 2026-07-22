@@ -1,18 +1,19 @@
 # Project Meridian
 
-Project Meridian is a multi-tenant geopolitical, cyber, environmental, and strategic intelligence platform. It aggregates external data, normalizes incidents, maps activity by theater, maintains organizational watchlists, and generates evidence-informed AI assessments.
+Project Meridian is a multi-tenant geopolitical, cyber, environmental, and strategic intelligence platform. It collects heterogeneous signals, normalizes observations, preserves provenance, detects meaningful change, supports analyst investigations, and produces decision-ready assessments.
 
 ## Current status
 
-Meridian is an alpha under active recovery and hardening. The application includes a Next.js interface, Prisma data model, Clerk authentication, Redis caching, a BullMQ feed worker, live and planned source adapters, threat-actor data, watchlists, saved incidents, custom sources, and AI-generated theater assessments.
+Phase 0 is complete and merged into `main`. Meridian now includes a production Supabase database, tenant provisioning, deterministic intelligence analysis, transactional persistence, collection orchestration, historical run comparison, the Signal Center, provenance inspection, and persistent investigation cases.
 
-The immediate development priority is production commissioning:
+The active priority is Phase 1 production commissioning and engineering hardening:
 
-1. Restore and migrate the Supabase database.
-2. Configure Clerk, Redis, Anthropic, and encryption secrets in Vercel.
-3. Deploy the persistent feed worker.
-4. Validate production-supported feeds.
-5. Establish CI, smoke tests, observability, and source-health reporting.
+1. Complete mandatory production runtime configuration.
+2. Separate core readiness from optional capabilities.
+3. Remove residual vendor-specific AI dependencies.
+4. Validate authenticated production persistence and collection.
+5. Establish source reliability, health, and release controls.
+6. Begin the entity, assertion, and relationship graph.
 
 See `docs/DEVELOPMENT_PLAN.md` for the implementation roadmap.
 
@@ -21,12 +22,13 @@ See `docs/DEVELOPMENT_PLAN.md` for the implementation roadmap.
 | Layer | Technology |
 |---|---|
 | Web application | Next.js 16, React 19, TypeScript |
-| Authentication | Clerk |
+| Authentication | Clerk during alpha |
 | Database | PostgreSQL through Prisma, hosted on Supabase |
-| Cache and queue | Upstash Redis, BullMQ |
+| Cache and queue | Optional Upstash Redis and BullMQ |
+| Intelligence core | Deterministic observations, evidence, signals, history, and cases |
 | Mapping | Leaflet during alpha; MapLibre/deck.gl modernization planned |
-| AI analysis | Anthropic through a server-side provider module |
-| Deployment | Vercel for the web application; persistent worker host required |
+| AI synthesis | Optional provider-neutral OpenAI-compatible interface |
+| Deployment | Vercel for the web application; persistent worker runtime required for recurring collection |
 
 ## Local development
 
@@ -34,8 +36,8 @@ See `docs/DEVELOPMENT_PLAN.md` for the implementation roadmap.
 
 - Node.js 20 or newer
 - PostgreSQL or a Supabase project
-- Redis or Upstash Redis
 - Clerk development application
+- Redis or Upstash Redis when testing caching or background collection
 
 ### Setup
 
@@ -49,15 +51,13 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-## Required environment variables
+## Environment variables
 
-The production deployment requires:
+The production application requires:
 
 - `DATABASE_URL`
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
 - `CLERK_SECRET_KEY`
-- `UPSTASH_REDIS_REST_URL`
-- `UPSTASH_REDIS_REST_TOKEN`
 - `ENCRYPTION_MASTER_SECRET`
 
 `ENCRYPTION_MASTER_SECRET` must contain exactly 64 hexadecimal characters. Generate one with:
@@ -66,13 +66,22 @@ The production deployment requires:
 openssl rand -hex 32
 ```
 
-The readiness endpoint at `/api/ready` reports missing configuration without exposing secret values. The health endpoint at `/api/health` verifies database and Redis connectivity.
+Optional capabilities use:
+
+- `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` for serverless caching
+- `REDIS_URL` for BullMQ workers and local Redis access
+- `AI_PROVIDER`, `AI_BASE_URL`, `AI_API_KEY`, and `AI_MODEL` for provider-neutral synthesis
+- Sentry, PostHog, and Stripe variables for observability, analytics, and billing
+
+The readiness endpoint at `/api/ready` evaluates mandatory configuration and reports optional capabilities separately. The health endpoint at `/api/health` treats database failure as unhealthy and optional Redis failure as degraded.
 
 ## Common commands
 
 ```bash
 npm run dev
 npm run lint
+npm run typecheck
+npm run verify:intelligence
 npm run build
 npm run start
 npx tsx src/worker/index.ts
@@ -80,26 +89,28 @@ npx tsx src/worker/index.ts
 
 ## Feed support states
 
-Source adapters should be classified as:
+Source adapters are classified as:
 
 - `PRODUCTION`: implemented, tested, and monitored
 - `EXPERIMENTAL`: implemented with limited validation
 - `CREDENTIAL_REQUIRED`: implemented and dependent on a tenant credential
 - `PLANNED`: visible in the roadmap and unavailable in production
 
-Adapters that return empty placeholder responses must remain outside the production-supported catalog.
+Adapters that return empty placeholder responses remain outside the production-supported catalog.
 
 ## Security expectations
 
-- Production secrets must never use fallback values.
+- Production secrets never use fallback values.
+- Secrets are configured directly in hosting-platform secret stores.
 - Stored provider credentials use AES-256-GCM with organization-derived keys.
-- Tenant data access must be enforced in application queries and database policies.
-- Every source requires provenance, licensing, freshness, and reliability metadata.
-- AI-generated factual claims must remain traceable to collected evidence.
+- Tenant access is enforced in application queries and database controls.
+- Every source carries provenance, licensing, freshness, and reliability metadata.
+- Every AI-generated factual statement remains traceable to collected evidence.
+- Deterministic intelligence functions remain available when optional AI services are disabled.
 
 ## Deployment
 
-The web application deploys from `main` through Vercel. The BullMQ worker is a separate long-running process and should be deployed on a persistent runtime such as a small DigitalOcean droplet or Railway service.
+The web application deploys from `main` through Vercel. The BullMQ worker is a separate long-running process deployed on a persistent runtime.
 
 Before promoting a deployment, verify:
 
@@ -107,6 +118,8 @@ Before promoting a deployment, verify:
 GET /api/ready -> 200
 GET /api/health -> 200
 ```
+
+Then run authenticated smoke tests for analysis, collection, persistence, and investigation cases.
 
 ## License
 
