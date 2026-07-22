@@ -2,7 +2,9 @@ import { db } from '@/lib/db';
 import { decryptKey } from '@/lib/crypto';
 import { fetchAllFeedsForTheater } from '@/lib/feeds/fetcher';
 import { FEED_REGISTRY } from '@/lib/feeds/registry';
-import type { AggregatedFeedResult } from '@/types/feeds';
+import { isCollectableSource } from '@/lib/feeds/capabilities';
+import { getCircuitBreakerState } from '@/lib/feeds/resilience';
+import type { AggregatedFeedResult, FeedResult } from '@/types/feeds';
 import { analyzeIncidents, type IntelligenceEngineOptions } from './engine';
 import { persistAnalysis, type PersistAnalysisResult } from './persistence';
 import type { IntelligenceAnalysisResult } from './types';
@@ -27,33 +29,81 @@ function unique(values: string[]): string[] {
   return [...new Set(values)];
 }
 
+function circuitOpenedAt(result: FeedResult, fetchedAt: Date): Date | null {
+  return result.meta.circuitBreaker === 'OPEN' ? fetchedAt : null;
+}
+
 async function updateFeedHealth(
   orgId: string,
   feedResult: AggregatedFeedResult,
   enabledOnCreate: Map<string, boolean>
 ): Promise<void> {
-  const fetchedAt = new Date(feedResult.meta.fetchedAt);
-  const successfulIds = new Set(feedResult.feedResults.map((result) => result.feedId));
+  const collectedAt = new Date(feedResult.meta.fetchedAt);
+  const resultByFeed = new Map(feedResult.feedResults.map((result) => [result.feedId, result]));
   const errors = new Map(feedResult.errors.map((error) => [error.feedId, error.error]));
-  const configuredIds = unique([...successfulIds, ...errors.keys()]);
+  const configuredIds = unique([...resultByFeed.keys(), ...errors.keys()]);
 
   await Promise.all(
-    configuredIds.map((feedId) =>
-      db.feedConfig.upsert({
+    configuredIds.map(async (feedId) => {
+      const result = resultByFeed.get(feedId);
+      const error = errors.get(feedId);
+
+      if (result) {
+        const fetchedAt = new Date(result.meta.fetchedAt);
+        const staleServedAt = result.meta.stale ? collectedAt : undefined;
+        const lastSuccessAt = result.meta.stale ? undefined : fetchedAt;
+
+        await db.feedConfig.upsert({
+          where: { orgId_feedId: { orgId, feedId } },
+          create: {
+            orgId,
+            feedId,
+            enabled: enabledOnCreate.get(feedId) ?? false,
+            lastFetchedAt: fetchedAt,
+            lastSuccessAt,
+            staleServedAt,
+            lastLatencyMs: result.meta.latencyMs,
+            consecutiveFailures: 0,
+            circuitState: result.meta.circuitBreaker,
+            circuitOpenedAt: circuitOpenedAt(result, collectedAt),
+            lastError: null,
+          },
+          update: {
+            lastFetchedAt: fetchedAt,
+            lastSuccessAt,
+            staleServedAt,
+            lastLatencyMs: result.meta.latencyMs,
+            consecutiveFailures: 0,
+            circuitState: result.meta.circuitBreaker,
+            circuitOpenedAt: circuitOpenedAt(result, collectedAt),
+            lastError: null,
+          },
+        });
+        return;
+      }
+
+      const circuitState = getCircuitBreakerState(feedId);
+      await db.feedConfig.upsert({
         where: { orgId_feedId: { orgId, feedId } },
         create: {
           orgId,
           feedId,
           enabled: enabledOnCreate.get(feedId) ?? false,
-          lastFetchedAt: successfulIds.has(feedId) ? fetchedAt : undefined,
-          lastError: errors.get(feedId),
+          lastFailureAt: collectedAt,
+          consecutiveFailures: 1,
+          circuitState,
+          circuitOpenedAt: circuitState === 'OPEN' ? collectedAt : null,
+          lastError: error ?? 'Collection failed',
         },
         update: {
-          lastFetchedAt: successfulIds.has(feedId) ? fetchedAt : undefined,
-          lastError: errors.get(feedId) ?? null,
+          lastFailureAt: collectedAt,
+          consecutiveFailures: { increment: 1 },
+          circuitState,
+          circuitOpenedAt: circuitState === 'OPEN' ? collectedAt : undefined,
+          lastError: error ?? 'Collection failed',
         },
-      })
-    )
+      });
+    })
   );
 }
 
@@ -62,16 +112,26 @@ export async function collectAndAnalyze(
 ): Promise<IntelligenceCollectionResult> {
   const { orgId, theaterId } = input;
   const requestedFeedIds = input.feedIds ? unique(input.feedIds) : undefined;
-  const knownFeedIds = new Set(FEED_REGISTRY.map((feed) => feed.id));
-  const unknownFeedIds = requestedFeedIds?.filter((feedId) => !knownFeedIds.has(feedId)) ?? [];
+  const definitionById = new Map(FEED_REGISTRY.map((feed) => [feed.id, feed]));
+  const unknownFeedIds = requestedFeedIds?.filter((feedId) => !definitionById.has(feedId)) ?? [];
 
   if (unknownFeedIds.length > 0) {
     throw new Error(`Unknown feeds: ${unknownFeedIds.join(', ')}`);
   }
 
+  const unavailableFeedIds = requestedFeedIds?.filter((feedId) => {
+    const definition = definitionById.get(feedId);
+    return definition ? !isCollectableSource(definition) : false;
+  }) ?? [];
+
+  if (unavailableFeedIds.length > 0) {
+    throw new Error(`Feeds are planned and unavailable: ${unavailableFeedIds.join(', ')}`);
+  }
+
   const configs = await db.feedConfig.findMany({ where: { orgId } });
   const configByFeed = new Map(configs.map((config) => [config.feedId, config]));
   const selectedDefinitions = FEED_REGISTRY.filter((definition) => {
+    if (!isCollectableSource(definition)) return false;
     if (requestedFeedIds) return requestedFeedIds.includes(definition.id);
     const config = configByFeed.get(definition.id);
     return config?.enabled ?? definition.defaultEnabled;

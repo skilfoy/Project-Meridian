@@ -99,17 +99,26 @@ model Incident {
 }
 
 model FeedConfig {
-  id              String       @id @default(cuid())
-  orgId           String
-  feedId          String
-  enabled         Boolean      @default(true)
-  refreshInterval Int          @default(900)
-  filters         Json?
-  lastFetchedAt   DateTime?
-  lastError       String?
-  org             Organization @relation(fields: [orgId], references: [id])
+  id                  String       @id @default(cuid())
+  orgId               String
+  feedId              String
+  enabled             Boolean      @default(true)
+  refreshInterval     Int          @default(900)
+  filters             Json?
+  lastFetchedAt       DateTime?
+  lastSuccessAt       DateTime?
+  lastFailureAt       DateTime?
+  staleServedAt       DateTime?
+  lastLatencyMs       Int?
+  consecutiveFailures Int          @default(0)
+  circuitState        String       @default("CLOSED")
+  circuitOpenedAt     DateTime?
+  lastError           String?
+  org                 Organization @relation(fields: [orgId], references: [id])
 
   @@unique([orgId, feedId])
+  @@index([orgId, circuitState])
+  @@index([orgId, lastSuccessAt])
 }
 
 model Watchlist {
@@ -295,15 +304,15 @@ model SignalCase {
 }
 
 model SignalCaseNote {
-  id        String       @id @default(cuid())
-  orgId     String
-  caseId    String
-  authorId  String
-  body      String
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  signalCase SignalCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  id         String       @id @default(cuid())
+  orgId      String
+  caseId     String
+  authorId   String
+  body       String
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  signalCase SignalCase   @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
   @@index([caseId, createdAt])
   @@index([orgId, createdAt])

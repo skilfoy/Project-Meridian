@@ -1,0 +1,44 @@
+name: Meridian epic
+description: Track a major Meridian phase or cross-cutting workstream
+title: "[Epic] "
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Strategic outcome
+      description: Describe the durable capability or phase outcome.
+    validations:
+      required: true
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Rationale
+      description: Explain how this epic advances Meridian's product direction.
+    validations:
+      required: true
+  - type: textarea
+    id: workstreams
+    attributes:
+      label: Workstreams
+      description: Link child issues and identify their intended sequence.
+      placeholder: |
+        - [ ] #123 Workstream one
+        - [ ] #124 Workstream two
+    validations:
+      required: true
+  - type: textarea
+    id: exit
+    attributes:
+      label: Exit criteria
+      description: Define the evidence required to close the epic.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and blockers
+  - type: textarea
+    id: decisions
+    attributes:
+      label: Architecture decisions
+      description: Link relevant ADRs.
