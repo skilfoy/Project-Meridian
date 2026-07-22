@@ -1,0 +1,49 @@
+name: Meridian CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - phase-0-recovery-hardening
+
+concurrency:
+  group: meridian-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/meridian
+      ENCRYPTION_MASTER_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_meridian_ci
+      CLERK_SECRET_KEY: sk_test_meridian_ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Verify deterministic intelligence
+        run: npm run verify:intelligence
+
+      - name: Build application
+        run: npm run build

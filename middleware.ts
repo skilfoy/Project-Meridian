@@ -5,7 +5,8 @@ const isPublic = createRouteMatcher([
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/api/health',
-  '/api/feeds/(.*)',  // Allow unauthenticated feed access (route handlers enforce auth)
+  '/api/ready',
+  '/api/feeds/(.*)', // Route handlers enforce feed authorization.
   '/api/webhooks/(.*)',
   '/embed/(.*)',
 ]);

@@ -1,36 +1,113 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Project Meridian
 
-## Getting Started
+Project Meridian is a multi-tenant geopolitical, cyber, environmental, and strategic intelligence platform. It aggregates external data, normalizes incidents, maps activity by theater, maintains organizational watchlists, and generates evidence-informed AI assessments.
 
-First, run the development server:
+## Current status
+
+Meridian is an alpha under active recovery and hardening. The application includes a Next.js interface, Prisma data model, Clerk authentication, Redis caching, a BullMQ feed worker, live and planned source adapters, threat-actor data, watchlists, saved incidents, custom sources, and AI-generated theater assessments.
+
+The immediate development priority is production commissioning:
+
+1. Restore and migrate the Supabase database.
+2. Configure Clerk, Redis, Anthropic, and encryption secrets in Vercel.
+3. Deploy the persistent feed worker.
+4. Validate production-supported feeds.
+5. Establish CI, smoke tests, observability, and source-health reporting.
+
+See `docs/DEVELOPMENT_PLAN.md` for the implementation roadmap.
+
+## Architecture
+
+| Layer | Technology |
+|---|---|
+| Web application | Next.js 16, React 19, TypeScript |
+| Authentication | Clerk |
+| Database | PostgreSQL through Prisma, hosted on Supabase |
+| Cache and queue | Upstash Redis, BullMQ |
+| Mapping | Leaflet during alpha; MapLibre/deck.gl modernization planned |
+| AI analysis | Anthropic through a server-side provider module |
+| Deployment | Vercel for the web application; persistent worker host required |
+
+## Local development
+
+### Prerequisites
+
+- Node.js 20 or newer
+- PostgreSQL or a Supabase project
+- Redis or Upstash Redis
+- Clerk development application
+
+### Setup
+
+```bash
+npm install
+cp .env.example .env.local
+npx prisma generate
+npx prisma migrate dev
+npm run dev
+```
+
+Open `http://localhost:3000`.
+
+## Required environment variables
+
+The production deployment requires:
+
+- `DATABASE_URL`
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- `CLERK_SECRET_KEY`
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+- `ENCRYPTION_MASTER_SECRET`
+
+`ENCRYPTION_MASTER_SECRET` must contain exactly 64 hexadecimal characters. Generate one with:
+
+```bash
+openssl rand -hex 32
+```
+
+The readiness endpoint at `/api/ready` reports missing configuration without exposing secret values. The health endpoint at `/api/health` verifies database and Redis connectivity.
+
+## Common commands
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run lint
+npm run build
+npm run start
+npx tsx src/worker/index.ts
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Feed support states
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Source adapters should be classified as:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `PRODUCTION`: implemented, tested, and monitored
+- `EXPERIMENTAL`: implemented with limited validation
+- `CREDENTIAL_REQUIRED`: implemented and dependent on a tenant credential
+- `PLANNED`: visible in the roadmap and unavailable in production
 
-## Learn More
+Adapters that return empty placeholder responses must remain outside the production-supported catalog.
 
-To learn more about Next.js, take a look at the following resources:
+## Security expectations
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Production secrets must never use fallback values.
+- Stored provider credentials use AES-256-GCM with organization-derived keys.
+- Tenant data access must be enforced in application queries and database policies.
+- Every source requires provenance, licensing, freshness, and reliability metadata.
+- AI-generated factual claims must remain traceable to collected evidence.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deployment
 
-## Deploy on Vercel
+The web application deploys from `main` through Vercel. The BullMQ worker is a separate long-running process and should be deployed on a persistent runtime such as a small DigitalOcean droplet or Railway service.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Before promoting a deployment, verify:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```text
+GET /api/ready -> 200
+GET /api/health -> 200
+```
+
+## License
+
+No license has been declared for this repository. All rights remain reserved until a license is selected.
