@@ -44,8 +44,14 @@ const incidents: NormalizedIncident[] = [
   },
 ];
 
-const first = analyzeIncidents(incidents, { referenceTime, observedAt: referenceTime });
-const second = analyzeIncidents(incidents, { referenceTime, observedAt: referenceTime });
+const engineOptions = {
+  referenceTime,
+  observedAt: referenceTime,
+  topicSimilarityThreshold: 0.3,
+};
+
+const first = analyzeIncidents(incidents, engineOptions);
+const second = analyzeIncidents(incidents, engineOptions);
 
 assert.deepEqual(first, second, 'analysis must be deterministic for fixed inputs and time');
 assert(first.signals.some((signal) => signal.family === 'SOURCE_CONVERGENCE'));
