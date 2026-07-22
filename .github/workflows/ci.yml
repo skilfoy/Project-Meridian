@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - main
-      - phase-0-recovery-hardening
+      - phase-1-production-commissioning
 
 concurrency:
   group: meridian-ci-${{ github.ref }}
@@ -36,6 +36,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify lockfile integrity
+        run: npm install --package-lock-only --ignore-scripts && git diff --exit-code -- package-lock.json
+
       - name: Generate Prisma client
         run: npx prisma generate
 
@@ -44,6 +47,9 @@ jobs:
 
       - name: Verify deterministic intelligence
         run: npm run verify:intelligence
+
+      - name: Verify source governance and resilience
+        run: npm run verify:feeds
 
       - name: Build application
         run: npm run build
