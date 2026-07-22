@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Project Meridian roadmap
+    url: https://github.com/skilfoy/Project-Meridian/blob/main/docs/DEVELOPMENT_PLAN.md
+    about: Review strategic phases, architecture, and exit criteria before opening work.
