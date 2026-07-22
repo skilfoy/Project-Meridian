@@ -36,8 +36,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Regenerate lockfile metadata
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Preserve regenerated lockfile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-package-lock
+          path: package-lock.json
+          retention-days: 1
+
       - name: Verify lockfile integrity
-        run: npm install --package-lock-only --ignore-scripts && git diff --exit-code -- package-lock.json
+        run: git diff --exit-code -- package-lock.json
 
       - name: Generate Prisma client
         run: npx prisma generate
