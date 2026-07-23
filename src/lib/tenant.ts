@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 export interface EnsureTenantInput {
   orgId: string;
   userId: string;
+  email?: string | null;
   personalWorkspace?: boolean;
 }
 
@@ -26,6 +27,7 @@ export async function ensureTenant(input: EnsureTenantInput): Promise<void> {
   const name = input.personalWorkspace
     ? 'Personal Meridian Workspace'
     : `Meridian Workspace ${input.orgId.slice(-8)}`;
+  const email = input.email?.trim().toLowerCase() || placeholderEmail(input.userId);
 
   await db.$transaction(async (tx) => {
     await tx.organization.upsert({
@@ -38,15 +40,19 @@ export async function ensureTenant(input: EnsureTenantInput): Promise<void> {
       update: {},
     });
 
+    const existingUserCount = await tx.user.count();
+
     await tx.user.upsert({
       where: { clerkUserId: input.userId },
       create: {
         orgId: input.orgId,
         clerkUserId: input.userId,
-        email: placeholderEmail(input.userId),
+        email,
+        role: existingUserCount === 0 ? 'OWNER' : 'ANALYST',
       },
       update: {
         orgId: input.orgId,
+        email,
       },
     });
   });

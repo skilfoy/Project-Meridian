@@ -10,7 +10,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "verify:intelligence": "tsx scripts/verify-intelligence.ts",
-    "verify:feeds": "tsx scripts/verify-feeds.ts"
+    "verify:feeds": "tsx scripts/verify-feeds.ts",
+    "verify:graph": "tsx scripts/verify-graph.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.0.7",

@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - main
-      - phase-1-production-commissioning
+      - phase-2-intelligence-graph-foundation
 
 concurrency:
   group: meridian-ci-${{ github.ref }}
@@ -50,6 +50,9 @@ jobs:
 
       - name: Verify source governance and resilience
         run: npm run verify:feeds
+
+      - name: Verify intelligence graph invariants
+        run: npm run verify:graph
 
       - name: Build application
         run: npm run build

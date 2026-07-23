@@ -1,5 +1,5 @@
 generator client {
-  provider        = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -31,6 +31,11 @@ model Organization {
   intelligenceSignals      IntelligenceSignalRecord[]
   signalCases              SignalCase[]
   signalCaseNotes          SignalCaseNote[]
+  graphEntities            GraphEntity[]
+  graphAliases             GraphAlias[]
+  graphAssertions          GraphAssertion[]
+  graphRelationships       GraphRelationship[]
+  graphEvidenceLinks       GraphEvidenceLink[]
   notificationConfig       Json?
 }
 
@@ -245,6 +250,7 @@ model IntelligenceEvidenceRecord {
   createdAt           DateTime                      @default(now())
   org                 Organization                  @relation(fields: [orgId], references: [id], onDelete: Cascade)
   observation         IntelligenceObservationRecord @relation(fields: [observationRecordId], references: [id], onDelete: Cascade)
+  graphEvidenceLinks  GraphEvidenceLink[]
 
   @@unique([observationRecordId, evidenceId])
   @@index([orgId, source, capturedAt])
@@ -276,25 +282,25 @@ model IntelligenceSignalRecord {
 }
 
 model SignalCase {
-  id               String            @id @default(cuid())
+  id               String             @id @default(cuid())
   orgId            String
   signalKey        String
   theaterId        String?
   family           String
   title            String
-  status           SignalCaseStatus  @default(OPEN)
+  status           SignalCaseStatus   @default(OPEN)
   disposition      SignalDisposition?
   acknowledgedAt   DateTime?
   acknowledgedBy   String?
   assignedTo       String?
-  watched          Boolean           @default(false)
+  watched          Boolean            @default(false)
   firstSeenAt      DateTime
   lastSeenAt       DateTime
   latestRunId      String?
   latestSignalId   String?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  org              Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  org              Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
   notes            SignalCaseNote[]
 
   @@unique([orgId, signalKey])
@@ -316,6 +322,114 @@ model SignalCaseNote {
 
   @@index([caseId, createdAt])
   @@index([orgId, createdAt])
+}
+
+model GraphEntity {
+  id               String              @id @default(cuid())
+  orgId            String
+  entityType       String
+  canonicalName    String
+  description      String?
+  attributes       Json?
+  confidence       Float               @default(1)
+  reviewState      String              @default("UNREVIEWED")
+  validFrom        DateTime?
+  validTo          DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  org              Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  aliases          GraphAlias[]
+  subjectAssertions GraphAssertion[]    @relation("GraphAssertionSubject")
+  objectAssertions  GraphAssertion[]    @relation("GraphAssertionObject")
+  outgoingRelations GraphRelationship[] @relation("GraphRelationshipFrom")
+  incomingRelations GraphRelationship[] @relation("GraphRelationshipTo")
+
+  @@unique([orgId, entityType, canonicalName])
+  @@index([orgId, entityType])
+  @@index([orgId, reviewState])
+}
+
+model GraphAlias {
+  id         String       @id @default(cuid())
+  orgId      String
+  entityId   String
+  alias      String
+  aliasType  String       @default("NAME")
+  source     String?
+  confidence Float        @default(1)
+  createdAt  DateTime     @default(now())
+  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  entity     GraphEntity  @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, entityId, alias])
+  @@index([orgId, alias])
+}
+
+model GraphAssertion {
+  id               String              @id @default(cuid())
+  orgId            String
+  subjectEntityId  String
+  predicate        String
+  objectEntityId   String?
+  objectValue      Json?
+  assertionState   String              @default("ACTIVE")
+  confidence       Float
+  source           String
+  sourceRecordId   String?
+  validFrom        DateTime?
+  validTo          DateTime?
+  observedAt       DateTime
+  createdAt        DateTime            @default(now())
+  org              Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  subjectEntity    GraphEntity         @relation("GraphAssertionSubject", fields: [subjectEntityId], references: [id], onDelete: Cascade)
+  objectEntity     GraphEntity?        @relation("GraphAssertionObject", fields: [objectEntityId], references: [id], onDelete: SetNull)
+  evidenceLinks    GraphEvidenceLink[]
+
+  @@index([orgId, subjectEntityId, predicate])
+  @@index([orgId, objectEntityId])
+  @@index([orgId, observedAt])
+}
+
+model GraphRelationship {
+  id               String              @id @default(cuid())
+  orgId            String
+  fromEntityId     String
+  toEntityId       String
+  relationshipType String
+  direction        String              @default("DIRECTED")
+  confidence       Float
+  reviewState      String              @default("UNREVIEWED")
+  validFrom        DateTime?
+  validTo          DateTime?
+  attributes       Json?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  org              Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  fromEntity       GraphEntity         @relation("GraphRelationshipFrom", fields: [fromEntityId], references: [id], onDelete: Cascade)
+  toEntity         GraphEntity         @relation("GraphRelationshipTo", fields: [toEntityId], references: [id], onDelete: Cascade)
+  evidenceLinks    GraphEvidenceLink[]
+
+  @@index([orgId, fromEntityId, relationshipType])
+  @@index([orgId, toEntityId, relationshipType])
+  @@index([orgId, validFrom, validTo])
+}
+
+model GraphEvidenceLink {
+  id               String                     @id @default(cuid())
+  orgId            String
+  assertionId      String?
+  relationshipId   String?
+  evidenceRecordId String
+  stance           String                     @default("SUPPORTS")
+  weight           Float                      @default(1)
+  createdAt        DateTime                   @default(now())
+  org              Organization               @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  assertion        GraphAssertion?            @relation(fields: [assertionId], references: [id], onDelete: Cascade)
+  relationship     GraphRelationship?         @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+  evidence         IntelligenceEvidenceRecord @relation(fields: [evidenceRecordId], references: [id], onDelete: Cascade)
+
+  @@unique([assertionId, relationshipId, evidenceRecordId])
+  @@index([orgId, evidenceRecordId])
 }
 
 enum Plan {
