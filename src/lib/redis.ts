@@ -1,7 +1,7 @@
 /**
  * Redis client singleton.
- * Uses Upstash REST client in production (UPSTASH_REDIS_REST_URL set),
- * falls back to ioredis for local development.
+ * Uses Upstash REST when configured, ioredis when REDIS_URL is configured,
+ * and an explicit no-op client when Redis is disabled.
  */
 
 let redisClient: RedisClient | null = null;
@@ -13,21 +13,43 @@ export interface RedisClient {
   ping(): Promise<string>;
 }
 
+const disabledRedisClient: RedisClient = {
+  async get() {
+    return null;
+  },
+  async set() {
+    return 0;
+  },
+  async del() {
+    return 0;
+  },
+  async ping() {
+    return 'DISABLED';
+  },
+};
+
 function createClient(): RedisClient {
   const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
   const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (upstashUrl && upstashToken) {
-    // Use Upstash REST client
     const { Redis } = require('@upstash/redis');
     return new Redis({ url: upstashUrl, token: upstashToken }) as RedisClient;
   }
 
-  // Use ioredis for local dev
+  const redisUrl = process.env.REDIS_URL;
+  if (!redisUrl) {
+    return disabledRedisClient;
+  }
+
   const IORedis = require('ioredis');
-  const client = new IORedis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
+  const client = new IORedis(redisUrl, {
     maxRetriesPerRequest: 3,
     lazyConnect: true,
+  });
+
+  client.on('error', () => {
+    // Callers treat Redis as optional and degrade to cache misses.
   });
 
   return {
@@ -70,6 +92,6 @@ export async function cacheSet<T>(key: string, value: T, ttlSeconds: number): Pr
   try {
     await getRedis().set(key, JSON.stringify(value), { ex: ttlSeconds });
   } catch {
-    // Non-fatal — cache miss is acceptable
+    // Non-fatal: cache misses remain acceptable when Redis is unavailable.
   }
 }
