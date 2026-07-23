@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { ensureTenant } from '@/lib/tenant';
 
@@ -14,17 +14,29 @@ export async function requireAuth(): Promise<AuthContext | NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const identity = await currentUser();
+    const primaryEmail =
+      identity?.emailAddresses.find((address) => address.id === identity.primaryEmailAddressId)?.emailAddress ??
+      identity?.emailAddresses[0]?.emailAddress ??
+      null;
     const resolvedOrgId = orgId ?? userId;
+
     await ensureTenant({
       orgId: resolvedOrgId,
       userId,
+      email: primaryEmail,
       personalWorkspace: !orgId,
     });
 
     return { userId, orgId: resolvedOrgId };
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
-      await ensureTenant({ orgId: 'dev', userId: 'dev', personalWorkspace: true });
+      await ensureTenant({
+        orgId: 'dev',
+        userId: 'dev',
+        email: 'dev@identity.meridian.local',
+        personalWorkspace: true,
+      });
       return { userId: 'dev', orgId: 'dev' };
     }
 
