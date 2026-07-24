@@ -15,6 +15,7 @@ import type { FeedParams, FeedResult, AggregatedFeedResult } from '@/types/feeds
 
 const CACHE_TTL_SEC = 600;
 const LAST_KNOWN_GOOD_TTL_SEC = 7 * 24 * 60 * 60;
+const RETRYABLE_HTTP_STATUS = new Set([408, 409, 425, 429]);
 
 function cacheKeys(feedId: string, params: FeedParams) {
   const suffix = `${params.theaterId ?? 'global'}:${params.limit ?? 25}`;
@@ -22,6 +23,17 @@ function cacheKeys(feedId: string, params: FeedParams) {
     current: `feed:${feedId}:${suffix}`,
     lastKnownGood: `feed:lkg:${feedId}:${suffix}`,
   };
+}
+
+export function shouldRetryFeedError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  const statusMatch = message.match(/\bHTTP\s+(\d{3})\b/i);
+
+  if (!statusMatch) return true;
+
+  const status = Number(statusMatch[1]);
+  if (status >= 500) return true;
+  return RETRYABLE_HTTP_STATUS.has(status);
 }
 
 async function staleResult(feedId: string, params: FeedParams): Promise<FeedResult | null> {
@@ -78,12 +90,14 @@ export async function fetchFeedWithCache(
       minTimeout: 1000,
       maxTimeout: 8000,
       randomize: true,
+      shouldRetry: ({ error }) => shouldRetryFeedError(error),
       onFailedAttempt: (error) => {
         logger.warn('Feed fetch attempt failed', {
           feedId,
           attempt: error.attemptNumber,
           retriesLeft: error.retriesLeft,
-          error: String(error),
+          retryable: shouldRetryFeedError(error.error),
+          error: error.error instanceof Error ? error.error.message : String(error.error),
         });
       },
     });
