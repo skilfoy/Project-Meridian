@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { FEED_REGISTRY } from '../src/lib/feeds/registry';
 import { getSourceCatalog, getSourceCatalogSummary } from '../src/lib/feeds/catalog';
 import { isCollectableSource, resolveSourceCapability } from '../src/lib/feeds/capabilities';
+import { shouldRetryFeedError } from '../src/lib/feeds/fetcher';
 import {
   getCircuitBreakerState,
   recordFeedFailure,
@@ -33,6 +34,12 @@ assert.equal(summary.total, FEED_REGISTRY.length);
 assert(summary.collectable > 0);
 assert((summary.bySupportState.PRODUCTION ?? 0) > 0);
 assert((summary.bySupportState.PLANNED ?? 0) > 0);
+
+assert.equal(shouldRetryFeedError(new Error('Provider HTTP 403')), false);
+assert.equal(shouldRetryFeedError(new Error('Provider HTTP 410')), false);
+assert.equal(shouldRetryFeedError(new Error('Provider HTTP 429')), true);
+assert.equal(shouldRetryFeedError(new Error('Provider HTTP 503')), true);
+assert.equal(shouldRetryFeedError(new Error('network timeout')), true);
 
 resetCircuitBreaker();
 assert.equal(getCircuitBreakerState('verification-feed', 0), 'CLOSED');
